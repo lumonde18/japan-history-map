@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本歴史マップ</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+</head>
+<body>
+    <header id="header">
+        <h1>日本歴史マップ</h1>
+        <nav id="tabs">
+            <div class="tab active" data-genre="all">全て</div>
+            <div class="tab" data-genre="城跡">城跡</div>
+            <div class="tab" data-genre="古墳">古墳</div>
+            <div class="tab" data-genre="寺院">寺院</div>
+            <div class="tab" data-genre="神社">神社</div>
+            <div class="tab" data-genre="その他">その他</div>
+        </nav>
+    </header>
+
+    <main>
+        <div id="map"></div>
+    </main>
+
+    <script>
+        // --- JavaScript (変更なし) ---
+
+        // 1. Googleスプレッドシートの公開URL（CSV形式）
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROZooEi-7881N2jbd3o3Vc67QBYkWrkYGZ61dqH8gmyfyarsZbycQT-8DGLsVhkjDDrvUEA4CgVEf_/pub?gid=0&single=true&output=csv';
+
+        // 2. 地図の初期設定
+        const map = L.map('map').setView([36.2048, 138.2529], 5);
+
+        // 3. 背景地図の設定（OpenStreetMap）
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 4. マーカーとデータを保持する変数
+        const markers = {}; 
+        let allSpotsData = []; 
+
+        // 5. Googleスプレッドシートからデータを読み込み、地図にマーカーを設置
+        Papa.parse(sheetUrl, {
+            download: true, 
+            header: true,   
+            dynamicTyping: true, 
+            complete: function(results) {
+                allSpotsData = results.data;
+                initializeMarkers(allSpotsData);
+                showMarkers('all'); 
+            }
+        });
+        
+        function initializeMarkers(data) {
+            const genres = ['all', '城跡', '古墳', '寺院', '神社', '宮跡', 'その他'];
+            genres.forEach(genre => {
+                markers[genre] = L.featureGroup();
+            });
+
+            data.forEach(spot => {
+                if (spot.lat && spot.lon && spot.name && spot.link) {
+                    const marker = L.marker([spot.lat, spot.lon]);
+                    const popupContent = `<b>${spot.name}</b><br>${spot.descriptionShort || ''}<br><a href="${spot.link}">詳細を見る</a>`;
+                    marker.bindPopup(popupContent);
+                    
+                    markers['all'].addLayer(marker);
+
+                    if (markers[spot.genre]) {
+                        markers[spot.genre].addLayer(marker);
+                    }
+                }
+            });
+        }
+
+        function showMarkers(genreToShow) {
+            // 表示されている全てのマーカーを一旦地図から削除
+            for (const genre in markers) {
+                if (map.hasLayer(markers[genre])) {
+                    map.removeLayer(markers[genre]);
+                }
+            }
+            
+            // 表示したいジャンルのマーカーレイヤーを地図に追加
+            if (markers[genreToShow] && markers[genreToShow].getLayers().length > 0) {
+                 map.addLayer(markers[genreToShow]);
+                 map.fitBounds(markers[genreToShow].getBounds(), { padding: [50, 50] });
+            } else {
+                // 表示するマーカーがない場合は、日本の初期表示に戻す
+                map.setView([36.2048, 138.2529], 5);
+            }
+        }
+        
+        // 6. タブのクリックイベント処理
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                const selectedGenre = this.dataset.genre;
+                showMarkers(selectedGenre);
+            });
+        });
+
+    </script>
+</body>
+</html>
