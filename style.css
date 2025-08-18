@@ -1,0 +1,67 @@
+/* --- style.css --- */
+
+/* 基本的なスタイルリセットとフォント設定 */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans CJK JP", "Yu Gothic", sans-serif;
+    color: #333;
+    display: flex; /* ヘッダーと地図を縦に並べる */
+    flex-direction: column;
+    height: 100vh; /* 画面全体の高さを確保 */
+}
+
+/* ヘッダー部分のスタイル */
+#header {
+    background-color: #f8f9fa;
+    padding: 10px 20px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0; /* ヘッダーが縮まないようにする */
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #4a5568;
+}
+
+/* ジャンル選択タブのスタイル */
+#tabs {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap; /* スマホ表示などで折り返すようにする */
+    padding: 10px 0;
+}
+
+.tab {
+    margin: 5px;
+    padding: 8px 16px;
+    border: 1px solid #ced4da;
+    border-radius: 20px; /* 角を丸くする */
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 14px;
+}
+
+/* タブをホバーした時のスタイル */
+.tab:hover {
+    background-color: #e9ecef;
+}
+
+/* 選択中のタブのスタイル */
+.tab.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* メインコンテンツエリアのスタイル */
+main {
+    flex-grow: 1; /* 残りの高さを全て使う */
+}
+
+/* 地図コンテナのスタイル */
+#map {
+    height: 100%; /* mainエリアの高さ一杯に広がる */
+    width: 100%;
+}
