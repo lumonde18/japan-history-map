@@ -69,9 +69,7 @@
             data.forEach(spot => {
                 if (spot.lat && spot.lon && spot.name && spot.link) {
                     const marker = L.marker([spot.lat, spot.lon]);
-                    const popupContent = `<b>${spot.name}</b><br>${spot.descriptionShort || ''}<br><a href="${spot.link}">詳細を見る</a>`;
-                    marker.bindPopup(popupContent);
-                    
+                    const popupContent = `<b>${spot.name}</b><br>${spot.descriptionShort || ''}<br><a href="spot.html?id=${spot.id}">詳細を見る</a>`;marker.bindPopup(popupContent); 
                     markers['all'].addLayer(marker);
 
                     if (markers[spot.genre]) {
