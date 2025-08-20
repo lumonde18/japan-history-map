@@ -211,8 +211,6 @@
 
         /**
          * 時代に応じて背景色を適用するクラスを返す関数
-         * @param {string} periodText - 時代のテキスト
-         * @returns {string} - 適用するCSSクラス名
          */
         function getPeriodClass(periodText) {
             if (!periodText) return 'period-default';
@@ -229,7 +227,6 @@
 
         /**
          * 沿革テーブルを生成する関数
-         * @param {string} historyData - スプレッドシートのhistory_table列のデータ
          */
         function createHistoryTable(historyData) {
             const tableBody = document.getElementById('history-body');
@@ -261,34 +258,40 @@
 
         /**
          * ページ全体に情報を反映させるメインの関数
-         * @param {object} spotData - スプレッドシートから取得した一行分のデータ
          */
         function updatePage(spotData) {
             document.title = `${spotData.name} - 日本歴史マップ`;
             document.getElementById('spot-name').textContent = spotData.name;
             document.getElementById('spot-genre').textContent = spotData.genre || '不明';
             
-            // 画像
             const imageElement = document.getElementById('spot-image');
             if (spotData.image) {
                 imageElement.src = spotData.image;
                 imageElement.alt = spotData.name;
             } else {
-                imageElement.style.display = 'none'; // 画像がない場合は非表示
+                imageElement.style.display = 'none';
             }
 
-            // 基本情報
             const periodElement = document.getElementById('spot-period');
             periodElement.textContent = spotData.period || '不明';
             periodElement.className = getPeriodClass(spotData.period);
 
             document.getElementById('spot-founder').textContent = spotData.founder || '不明';
             
-            // 沿革テーブル
             createHistoryTable(spotData.history_table);
 
+            // ★★★ ここからが修正箇所 ★★★
             // 詳細
-            document.getElementById('spot-description').textContent = spotData.description || '情報がありません。';
+            const descriptionElement = document.getElementById('spot-description');
+            if (spotData.description) {
+                // スプレッドシートの改行文字(\n)をHTMLの<br>タグに置換
+                const formattedDescription = spotData.description.replace(/\n/g, '<br>');
+                // textContentの代わりにinnerHTMLを使い、<br>タグをHTMLとして解釈させる
+                descriptionElement.innerHTML = formattedDescription;
+            } else {
+                descriptionElement.textContent = '情報がありません。';
+            }
+            // ★★★ ここまでが修正箇所 ★★★
         }
 
         // 4. スプレッドシートのデータを読み込む
