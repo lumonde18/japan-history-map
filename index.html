@@ -5,73 +5,238 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日本歴史マップ</title>
     
-    <link rel="stylesheet" href="style.css">
-    
+    <!-- 外部ライブラリ: Leaflet (地図) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
+    <!-- 外部ライブラリ: PapaParse (CSV解析) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CSS --- */
+        :root {
+            --primary-color: #334155; /* 濃い青灰色 */
+            --secondary-color: #64748b; /* やや薄い青灰色 */
+            --accent-color: #c084fc; /* アクセントの紫 */
+            --background-color: #f1f5f9; /* 背景の薄い灰色 */
+            --card-background: #ffffff;
+            --text-color: #1e293b;
+            --subtle-text: #475569;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        /* ヘッダー */
+        #header {
+            background-color: var(--card-background);
+            padding: 15px 30px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        #header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        
+        /* イントロダクション */
+        .intro {
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 16px;
+            color: var(--subtle-text);
+        }
+
+        /* メインコンテンツエリア */
+        main {
+            padding: 0 30px 30px 30px;
+        }
+        
+        .map-container {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        /* 検索バー */
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #search-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        #search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.2);
+        }
+
+        /* ジャンルタブ */
+        #tabs {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 8px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            background-color: var(--card-background);
+        }
+        
+        .tab:hover {
+            background-color: #f8fafc;
+            border-color: var(--secondary-color);
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* 地図 */
+        #map {
+            height: 65vh;
+            width: 100%;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        /* ローディングスピナー */
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--accent-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            z-index: 999;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* フッター */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: var(--subtle-text);
+        }
+
+    </style>
 </head>
 <body>
     <header id="header">
         <h1>日本歴史マップ</h1>
-        <nav id="tabs">
-            <div class="tab active" data-genre="all">全て</div>
-            <div class="tab" data-genre="城跡">城跡</div>
-            <div class="tab" data-genre="古墳">古墳</div>
-            <div class="tab" data-genre="寺院">寺院</div>
-            <div class="tab" data-genre="神社">神社</div>
-            <div class="tab" data-genre="その他">その他</div>
-        </nav>
     </header>
 
+    <div class="intro">
+        <p>地図からたどる、日本の歴史。城跡、古墳、寺社仏閣...。気になる史跡をクリックして、その物語をのぞいてみましょう。</p>
+    </div>
+
     <main>
-        <div id="map"></div>
+        <div class="map-container">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="史跡名で検索...">
+            </div>
+            <nav id="tabs">
+                <div class="tab active" data-genre="all">全て</div>
+                <div class="tab" data-genre="城跡">城跡</div>
+                <div class="tab" data-genre="古墳">古墳</div>
+                <div class="tab" data-genre="寺院">寺院</div>
+                <div class="tab" data-genre="神社">神社</div>
+                <div class="tab" data-genre="その他">その他</div>
+            </nav>
+            <div id="map">
+                <div class="loader" id="loader"></div>
+            </div>
+        </div>
     </main>
+    
+    <footer>
+        <p>&copy; 2025 日本歴史マップ</p>
+    </footer>
 
     <script>
-        // --- JavaScript (変更なし) ---
+        // --- JavaScript ---
 
         // 1. Googleスプレッドシートの公開URL（CSV形式）
         const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROZooEi-7881N2jbd3o3Vc67QBYkWrkYGZ61dqH8gmyfyarsZbycQT-8DGLsVhkjDDrvUEA4CgVEf_/pub?gid=0&single=true&output=csv';
 
-        // 2. 地図の初期設定
-        const map = L.map('map').setView([36.2048, 138.2529], 5);
+        // 2. HTML要素の取得
+        const mapElement = document.getElementById('map');
+        const loader = document.getElementById('loader');
+        const searchInput = document.getElementById('search-input');
+        const tabs = document.querySelectorAll('.tab');
 
-        // 3. 背景地図の設定（OpenStreetMap）
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // 3. 地図の初期設定
+        const map = L.map('map').setView([36.2048, 138.2529], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         // 4. マーカーとデータを保持する変数
-        const markers = {}; 
-        let allSpotsData = []; 
+        const markers = {};
+        let allSpotsData = [];
 
-        // 5. Googleスプレッドシートからデータを読み込み、地図にマーカーを設置
-        Papa.parse(sheetUrl, {
-            download: true, 
-            header: true,   
-            dynamicTyping: true, 
-            complete: function(results) {
-                allSpotsData = results.data;
-                initializeMarkers(allSpotsData);
-                showMarkers('all'); 
+        /**
+         * 全てのマーカーレイヤーをクリアする関数
+         */
+        function clearAllMarkers() {
+            for (const genre in markers) {
+                markers[genre].clearLayers();
             }
-        });
+        }
         
+        /**
+         * データを元にマーカーを初期化し、ジャンルごとに整理する関数
+         * @param {Array} data - 表示対象のスポットデータ
+         */
         function initializeMarkers(data) {
-            const genres = ['all', '城跡', '古墳', '寺院', '神社', '宮跡', 'その他'];
-            genres.forEach(genre => {
-                markers[genre] = L.featureGroup();
-            });
-
+            clearAllMarkers(); // 事前に既存のマーカーをクリア
             data.forEach(spot => {
-                if (spot.lat && spot.lon && spot.name && spot.link) {
+                if (spot.id && spot.lat && spot.lon && spot.name) {
                     const marker = L.marker([spot.lat, spot.lon]);
-                    const popupContent = `<b>${spot.name}</b><br>${spot.descriptionShort || ''}<br><a href="spot.html?id=${spot.id}">詳細を見る</a>`;marker.bindPopup(popupContent); 
+                    const popupContent = `<b>${spot.name}</b><br>${spot.descriptionShort || ''}<br><a href="spot.html?id=${spot.id}">詳細を見る</a>`;
+                    marker.bindPopup(popupContent);
+                    
                     markers['all'].addLayer(marker);
-
                     if (markers[spot.genre]) {
                         markers[spot.genre].addLayer(marker);
                     }
@@ -79,26 +244,50 @@
             });
         }
 
+        /**
+         * 指定されたジャンルのマーカーのみを表示する関数
+         * @param {string} genreToShow - 表示したいジャンル名
+         */
         function showMarkers(genreToShow) {
-            // 表示されている全てのマーカーを一旦地図から削除
             for (const genre in markers) {
                 if (map.hasLayer(markers[genre])) {
                     map.removeLayer(markers[genre]);
                 }
             }
             
-            // 表示したいジャンルのマーカーレイヤーを地図に追加
             if (markers[genreToShow] && markers[genreToShow].getLayers().length > 0) {
                  map.addLayer(markers[genreToShow]);
                  map.fitBounds(markers[genreToShow].getBounds(), { padding: [50, 50] });
             } else {
-                // 表示するマーカーがない場合は、日本の初期表示に戻す
                 map.setView([36.2048, 138.2529], 5);
             }
         }
+
+        // 5. メインの処理
+        // ジャンルごとのレイヤーグループを先に作成
+        const genres = ['all', '城跡', '古墳', '寺院', '神社', 'その他'];
+        genres.forEach(genre => {
+            markers[genre] = L.featureGroup();
+        });
+
+        Papa.parse(sheetUrl, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                loader.style.display = 'none'; // ローディング非表示
+                allSpotsData = results.data;
+                initializeMarkers(allSpotsData);
+                showMarkers('all');
+            },
+            error: function() {
+                loader.style.display = 'none';
+                mapElement.innerHTML = '<p style="text-align:center;">データの読み込みに失敗しました。ページを再読み込みしてください。</p>';
+            }
+        });
         
-        // 6. タブのクリックイベント処理
-        const tabs = document.querySelectorAll('.tab');
+        // 6. イベントリスナーの設定
+        // タブのクリックイベント
         tabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 tabs.forEach(t => t.classList.remove('active'));
@@ -107,6 +296,21 @@
                 const selectedGenre = this.dataset.genre;
                 showMarkers(selectedGenre);
             });
+        });
+
+        // 検索入力イベント
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredData = allSpotsData.filter(spot => {
+                return spot.name && spot.name.toLowerCase().includes(searchTerm);
+            });
+            
+            initializeMarkers(filteredData);
+            showMarkers('all'); // フィルタリング結果を「全て」として表示
+            
+            // タブの選択状態をリセット
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelector('.tab[data-genre="all"]').classList.add('active');
         });
 
     </script>
