@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スポット詳細 - 日本歴史マップ</title>
+    <style>
+        /* スポット紹介ページのスタイル */
+        body { font-family: sans-serif; margin: 0; }
+        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+        h1 { text-align: center; }
+        img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 8px; }
+        .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 10px; margin-bottom: 15px; }
+        .info-grid dt { font-weight: bold; text-align: right; }
+        .back-button { display: block; margin-top: 30px; text-align: center; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="spot-name">読み込み中...</h1>
+        <img id="spot-image" src="" alt="スポットの画像">
+
+        <dl class="info-grid">
+            <dt>時代:</dt>
+            <dd id="spot-period">-</dd>
+            
+            <dt>創設者:</dt>
+            <dd id="spot-founder">-</dd>
+            
+            <dt>ジャンル:</dt>
+            <dd id="spot-genre">-</dd>
+        </dl>
+        
+        <h2>詳細・エピソード</h2>
+        <p id="spot-description">-</p>
+        <div class="back-button">
+            <a href="./index.html">マップに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        // 1. スプレッドシートの公開URL
+        // index.htmlと同じURLをここに貼り付けます
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROZooEi-7881N2jbd3o3Vc67QBYkWrkYGZ61dqH8gmyfyarsZbycQT-8DGLsVhkjDDrvUEA4CgVEf_/pub?gid=0&single=true&output=csv';
+
+        // 2. URLから表示すべきスポットのIDを取得
+        const params = new URLSearchParams(window.location.search);
+        const spotId = params.get('id');
+
+        // 3. ページに情報を反映させる関数
+        function updatePage(spotData) {
+            document.title = `${spotData.name} - 日本歴史マップ`; // ページのタイトルを更新
+            document.getElementById('spot-name').textContent = spotData.name;
+            document.getElementById('spot-image').src = spotData.image || 'default-image.jpg'; // 画像がない場合の代替画像
+            document.getElementById('spot-image').alt = spotData.name;
+            document.getElementById('spot-period').textContent = spotData.period || '不明';
+            document.getElementById('spot-founder').textContent = spotData.founder || '不明';
+            document.getElementById('spot-genre').textContent = spotData.genre || '不明';
+            document.getElementById('spot-description').textContent = spotData.descriptionLong || '情報がありません。';
+        }
+
+        // 4. スプレッドシートのデータを読み込む
+        Papa.parse(sheetUrl, {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                // URLのidと一致するデータをスプレッドシートから探す
+                const spotData = results.data.find(row => row.id == spotId);
+                
+                if (spotData) {
+                    // データが見つかった場合、ページに情報を反映させる
+                    updatePage(spotData);
+                } else {
+                    // データが見つからなかった場合のエラー表示
+                    document.getElementById('spot-name').textContent = 'スポットが見つかりません';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
