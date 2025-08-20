@@ -77,6 +77,29 @@
             color: var(--primary-color);
         }
 
+        /* ★★★ ここからが追加/修正箇所 ★★★ */
+        /* スタンプ(指定文化財など)のコンテナ */
+        #spot-designations {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* スタンプ間の余白 */
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .designation-stamp {
+            height: 80px; /* スタンプの縦サイズ */
+            width: auto;  /* 横サイズは縦横比を維持して自動調整 */
+        }
+        /* もし固定サイズにしたい場合: 
+        .designation-stamp {
+            height: 200px;
+            width: 500px;
+            object-fit: contain; /* 画像が歪まないように調整 */
+        }
+        */
+        /* ★★★ ここまでが追加/修正箇所 ★★★ */
+
         /* 基本情報 */
         .info-grid {
             display: grid;
@@ -165,6 +188,11 @@
             <div class="card">
                 <img id="spot-image" src="https://placehold.co/800x400/e2e8f0/a0aec0?text=画像読み込み中" alt="スポットの画像">
                 
+                <!-- ★★★ ここからが追加箇所 ★★★ -->
+                <!-- スタンプ画像が表示されるコンテナ -->
+                <div id="spot-designations"></div>
+                <!-- ★★★ ここまでが追加箇所 ★★★ -->
+
                 <h2>基本情報</h2>
                 <dl class="info-grid">
                     <dt>時代</dt>
@@ -184,9 +212,7 @@
                             <th>出来事</th>
                         </tr>
                     </thead>
-                    <tbody id="history-body">
-                        <!-- ここにJavaScriptで沿革が挿入されます -->
-                    </tbody>
+                    <tbody id="history-body"></tbody>
                 </table>
             </div>
 
@@ -234,27 +260,61 @@
                 tableBody.innerHTML = '<tr><td colspan="2">情報がありません。</td></tr>';
                 return;
             }
-
             const events = historyData.split(';');
             events.forEach(eventStr => {
                 const parts = eventStr.split(':');
                 if (parts.length === 2) {
                     const year = parts[0].trim();
                     const description = parts[1].trim();
-                    
                     const row = document.createElement('tr');
                     const cellYear = document.createElement('td');
                     const cellDesc = document.createElement('td');
-                    
                     cellYear.textContent = year;
                     cellDesc.textContent = description;
-                    
                     row.appendChild(cellYear);
                     row.appendChild(cellDesc);
                     tableBody.appendChild(row);
                 }
             });
         }
+
+        // ★★★ ここからが追加箇所 ★★★
+        /**
+         * スタンプ画像を生成する関数
+         * @param {string} designationData - スプレッドシートのdesignations列のデータ
+         */
+        function createDesignationStamps(designationData) {
+            const container = document.getElementById('spot-designations');
+            if (!designationData) {
+                container.style.display = 'none'; // データがなければコンテナごと非表示
+                return;
+            }
+
+            // キーワードと、それに対応する画像のaltテキスト(説明文)を定義
+            const stampInfo = {
+                'important_cultural_property': '重要文化財',
+                'existing_12_keep': '現存12天守',
+                'world_heritage': '世界遺産',
+                'national_treasure': '国宝',
+                'top_100_castle': '日本100名城',
+                'special_historic_site': '特別史跡'
+            };
+
+            const designations = designationData.split(',').map(item => item.trim());
+            
+            designations.forEach(key => {
+                if (stampInfo[key]) {
+                    const img = document.createElement('img');
+                    // 画像は `stamps` というフォルダに入っていることを想定
+                    img.src = `./stamps/${key}.jpg`; 
+                    img.alt = stampInfo[key]; // 画像が表示されない時用のテキスト
+                    img.title = stampInfo[key]; // マウスを乗せた時に表示されるテキスト
+                    img.className = 'designation-stamp';
+                    container.appendChild(img);
+                }
+            });
+        }
+        // ★★★ ここまでが追加箇所 ★★★
 
         /**
          * ページ全体に情報を反映させるメインの関数
@@ -272,6 +332,9 @@
                 imageElement.style.display = 'none';
             }
 
+            // ★★★ 追加: スタンプ生成関数を呼び出す ★★★
+            createDesignationStamps(spotData.designations);
+
             const periodElement = document.getElementById('spot-period');
             periodElement.textContent = spotData.period || '不明';
             periodElement.className = getPeriodClass(spotData.period);
@@ -280,18 +343,13 @@
             
             createHistoryTable(spotData.history_table);
 
-            // ★★★ ここからが修正箇所 ★★★
-            // 詳細
             const descriptionElement = document.getElementById('spot-description');
             if (spotData.description) {
-                // スプレッドシートの改行文字(\n)をHTMLの<br>タグに置換
                 const formattedDescription = spotData.description.replace(/\n/g, '<br>');
-                // textContentの代わりにinnerHTMLを使い、<br>タグをHTMLとして解釈させる
                 descriptionElement.innerHTML = formattedDescription;
             } else {
                 descriptionElement.textContent = '情報がありません。';
             }
-            // ★★★ ここまでが修正箇所 ★★★
         }
 
         // 4. スプレッドシートのデータを読み込む
@@ -302,7 +360,6 @@
                 dynamicTyping: true,
                 complete: function(results) {
                     const spotData = results.data.find(row => row.id == spotId);
-                    
                     if (spotData) {
                         updatePage(spotData);
                     } else {
