@@ -4,81 +4,312 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スポット詳細 - 日本歴史マップ</title>
-    <style>
-        /* スポット紹介ページのスタイル */
-        body { font-family: sans-serif; margin: 0; }
-        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
-        h1 { text-align: center; }
-        img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 8px; }
-        .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 10px; margin-bottom: 15px; }
-        .info-grid dt { font-weight: bold; text-align: right; }
-        .back-button { display: block; margin-top: 30px; text-align: center; }
-    </style>
+    
+    <!-- Google Fontsの読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- PapaParseライブラリを読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* --- CSS --- */
+        :root {
+            --primary-color: #4a5568;
+            --background-color: #f7fafc;
+            --card-background: #ffffff;
+            --border-color: #e2e8f0;
+            --text-color: #2d3748;
+            --subtle-text: #718096;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* ヘッダー部分 */
+        .spot-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        #spot-name {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        #spot-genre {
+            font-size: 1.1em;
+            color: var(--subtle-text);
+            margin-top: 0;
+        }
+
+        /* カードスタイル */
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        #spot-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        /* 基本情報 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 15px;
+        }
+        .info-grid dt {
+            font-weight: bold;
+            text-align: right;
+            color: var(--subtle-text);
+        }
+        .info-grid dd {
+            margin: 0;
+        }
+
+        /* 時代ごとの色分け */
+        #spot-period {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #fff;
+            display: inline-block;
+        }
+        .period-kofun    { background-color: #8D6E63; } /* 古墳: 茶 */
+        .period-asuka    { background-color: #8E24AA; } /* 飛鳥: 紫 */
+        .period-nara     { background-color: #673AB7; } /* 奈良: 濃紫 */
+        .period-heian    { background-color: #D81B60; } /* 平安: 紅 */
+        .period-kamakura { background-color: #00897B; } /* 鎌倉: 緑 */
+        .period-muromachi{ background-color: #546E7A; } /* 室町: 灰 */
+        .period-azuchi   { background-color: #AF601A; } /* 安土桃山: 金茶 */
+        .period-edo      { background-color: #283593; } /* 江戸: 藍 */
+        .period-default  { background-color: #757575; } /* その他: 灰 */
+
+        /* 沿革テーブル */
+        #history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #history-table th, #history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #history-table th {
+            background-color: #f8f9fa;
+        }
+        #history-table td:first-child {
+            font-weight: bold;
+            width: 120px;
+        }
+
+        /* 詳細テキスト */
+        #spot-description {
+            line-height: 1.8;
+        }
+
+        /* 戻るボタン */
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #2d3748;
+        }
+        .center {
+            text-align: center;
+        }
+
+    </style>
 </head>
 <body>
 
     <div class="container">
-        <h1 id="spot-name">読み込み中...</h1>
-        <img id="spot-image" src="" alt="スポットの画像">
+        <header class="spot-header">
+            <h1 id="spot-name">読み込み中...</h1>
+            <p id="spot-genre"></p>
+        </header>
 
-        <dl class="info-grid">
-            <dt>時代:</dt>
-            <dd id="spot-period">-</dd>
-            
-            <dt>創設者:</dt>
-            <dd id="spot-founder">-</dd>
-            
-            <dt>ジャンル:</dt>
-            <dd id="spot-genre">-</dd>
-        </dl>
+        <main>
+            <div class="card">
+                <img id="spot-image" src="https://placehold.co/800x400/e2e8f0/a0aec0?text=画像読み込み中" alt="スポットの画像">
+                
+                <h2>基本情報</h2>
+                <dl class="info-grid">
+                    <dt>時代</dt>
+                    <dd><span id="spot-period">-</span></dd>
+                    
+                    <dt>建設者</dt>
+                    <dd id="spot-founder">-</dd>
+                </dl>
+            </div>
+
+            <div class="card">
+                <h2>沿革</h2>
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>年</th>
+                            <th>出来事</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <!-- ここにJavaScriptで沿革が挿入されます -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>詳細</h2>
+                <p id="spot-description">-</p>
+            </div>
+        </main>
         
-        <h2>詳細・エピソード</h2>
-        <p id="spot-description">-</p>
-        <div class="back-button">
-            <a href="./index.html">マップに戻る</a>
-        </div>
+        <footer class="center">
+            <a href="./index.html" class="back-button">マップに戻る</a>
+        </footer>
     </div>
 
     <script>
         // 1. スプレッドシートの公開URL
-        // index.htmlと同じURLをここに貼り付けます
         const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROZooEi-7881N2jbd3o3Vc67QBYkWrkYGZ61dqH8gmyfyarsZbycQT-8DGLsVhkjDDrvUEA4CgVEf_/pub?gid=0&single=true&output=csv';
 
         // 2. URLから表示すべきスポットのIDを取得
         const params = new URLSearchParams(window.location.search);
         const spotId = params.get('id');
 
-        // 3. ページに情報を反映させる関数
+        /**
+         * 時代に応じて背景色を適用するクラスを返す関数
+         * @param {string} periodText - 時代のテキスト
+         * @returns {string} - 適用するCSSクラス名
+         */
+        function getPeriodClass(periodText) {
+            if (!periodText) return 'period-default';
+            if (periodText.includes('古墳')) return 'period-kofun';
+            if (periodText.includes('飛鳥')) return 'period-asuka';
+            if (periodText.includes('奈良')) return 'period-nara';
+            if (periodText.includes('平安')) return 'period-heian';
+            if (periodText.includes('鎌倉')) return 'period-kamakura';
+            if (periodText.includes('室町')) return 'period-muromachi';
+            if (periodText.includes('安土桃山')) return 'period-azuchi';
+            if (periodText.includes('江戸')) return 'period-edo';
+            return 'period-default';
+        }
+
+        /**
+         * 沿革テーブルを生成する関数
+         * @param {string} historyData - スプレッドシートのhistory_table列のデータ
+         */
+        function createHistoryTable(historyData) {
+            const tableBody = document.getElementById('history-body');
+            if (!historyData) {
+                tableBody.innerHTML = '<tr><td colspan="2">情報がありません。</td></tr>';
+                return;
+            }
+
+            const events = historyData.split(';');
+            events.forEach(eventStr => {
+                const parts = eventStr.split(':');
+                if (parts.length === 2) {
+                    const year = parts[0].trim();
+                    const description = parts[1].trim();
+                    
+                    const row = document.createElement('tr');
+                    const cellYear = document.createElement('td');
+                    const cellDesc = document.createElement('td');
+                    
+                    cellYear.textContent = year;
+                    cellDesc.textContent = description;
+                    
+                    row.appendChild(cellYear);
+                    row.appendChild(cellDesc);
+                    tableBody.appendChild(row);
+                }
+            });
+        }
+
+        /**
+         * ページ全体に情報を反映させるメインの関数
+         * @param {object} spotData - スプレッドシートから取得した一行分のデータ
+         */
         function updatePage(spotData) {
-            document.title = `${spotData.name} - 日本歴史マップ`; // ページのタイトルを更新
+            document.title = `${spotData.name} - 日本歴史マップ`;
             document.getElementById('spot-name').textContent = spotData.name;
-            document.getElementById('spot-image').src = spotData.image || 'default-image.jpg'; // 画像がない場合の代替画像
-            document.getElementById('spot-image').alt = spotData.name;
-            document.getElementById('spot-period').textContent = spotData.period || '不明';
-            document.getElementById('spot-founder').textContent = spotData.founder || '不明';
             document.getElementById('spot-genre').textContent = spotData.genre || '不明';
-            document.getElementById('spot-description').textContent = spotData.descriptionLong || '情報がありません。';
+            
+            // 画像
+            const imageElement = document.getElementById('spot-image');
+            if (spotData.image) {
+                imageElement.src = spotData.image;
+                imageElement.alt = spotData.name;
+            } else {
+                imageElement.style.display = 'none'; // 画像がない場合は非表示
+            }
+
+            // 基本情報
+            const periodElement = document.getElementById('spot-period');
+            periodElement.textContent = spotData.period || '不明';
+            periodElement.className = getPeriodClass(spotData.period);
+
+            document.getElementById('spot-founder').textContent = spotData.founder || '不明';
+            
+            // 沿革テーブル
+            createHistoryTable(spotData.history_table);
+
+            // 詳細
+            document.getElementById('spot-description').textContent = spotData.description || '情報がありません。';
         }
 
         // 4. スプレッドシートのデータを読み込む
-        Papa.parse(sheetUrl, {
-            download: true,
-            header: true,
-            dynamicTyping: true,
-            complete: function(results) {
-                // URLのidと一致するデータをスプレッドシートから探す
-                const spotData = results.data.find(row => row.id == spotId);
-                
-                if (spotData) {
-                    // データが見つかった場合、ページに情報を反映させる
-                    updatePage(spotData);
-                } else {
-                    // データが見つからなかった場合のエラー表示
-                    document.getElementById('spot-name').textContent = 'スポットが見つかりません';
+        if (spotId) {
+            Papa.parse(sheetUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    const spotData = results.data.find(row => row.id == spotId);
+                    
+                    if (spotData) {
+                        updatePage(spotData);
+                    } else {
+                        document.getElementById('spot-name').textContent = '指定されたスポットが見つかりません';
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            document.getElementById('spot-name').textContent = 'スポットが指定されていません';
+        }
     </script>
 </body>
 </html>
