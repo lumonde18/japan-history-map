@@ -207,7 +207,8 @@
 
         // 3. 地図の初期設定
         const map = L.map('map').setView([36.2048, 138.2529], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{y}.png', {
+        // ★★★ 修正点: URLに {x} を追加しました ★★★
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
