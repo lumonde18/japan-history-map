@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古墳詳細 - 日本歴史マップ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>:root{--primary-color:#4a5568;--background-color:#f7fafc;--card-background:#ffffff;--border-color:#e2e8f0;--text-color:#2d3748;--subtle-text:#718096}body{margin:0;font-family:'Noto Sans JP',sans-serif;background-color:var(--background-color);color:var(--text-color)}.container{max-width:800px;margin:20px auto;padding:0 15px}.spot-header{text-align:center;margin-bottom:30px}#spot-name{font-size:2.5em;color:var(--primary-color);margin-bottom:5px}#spot-genre{font-size:1.1em;color:var(--subtle-text);margin-top:0}.card{background-color:var(--card-background);border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.05);padding:25px;margin-bottom:25px;overflow:hidden}#spot-image{width:100%;height:auto;border-radius:8px;margin-bottom:25px}.card h2{margin-top:0;border-bottom:2px solid var(--border-color);padding-bottom:10px;color:var(--primary-color)}#spot-designations{display:flex;flex-wrap:wrap;gap:15px;justify-content:center;margin-bottom:25px}.designation-stamp{height:80px;width:auto}.info-grid{display:grid;grid-template-columns:100px 1fr;gap:15px}.info-grid dt{font-weight:700;text-align:left;color:var(--subtle-text)}.info-grid dd{margin:0}#spot-period{padding:3px 10px;border-radius:15px;font-weight:700;color:#fff;display:inline-block}.period-kofun{background-color:#8D6E63}.period-asuka{background-color:#8E24AA}.period-nara{background-color:#673AB7}.period-heian{background-color:#D81B60}.period-kamakura{background-color:#00897B}.period-muromachi{background-color:#546E7A}.period-azuchi{background-color:#AF601A}.period-edo{background-color:#283593}.period-default{background-color:#757575}#spot-description{line-height:1.8}.back-button{display:inline-block;margin-top:20px;padding:10px 20px;background-color:var(--primary-color);color:#fff;text-decoration:none;border-radius:8px;transition:background-color .3s}.back-button:hover{background-color:#2d3748}.center{text-align:center}</style>
+</head>
+<body>
+    <div class="container">
+        <header class="spot-header"><h1 id="spot-name">読み込み中...</h1></header>
+        <main>
+            <div class="card">
+                <img id="spot-image" src="https://placehold.co/800x400/e2e8f0/a0aec0?text=画像読み込み中" alt="スポットの画像">
+                <div id="spot-designations"></div>
+                <h2>基本情報</h2>
+                <dl class="info-grid">
+                    <dt>時代</dt><dd><span id="spot-period">-</span></dd>
+                    <dt>被葬者</dt><dd id="spot-buried-person">-</dd>
+                    <dt>形状</dt><dd id="spot-kofun-shape">-</dd>
+                    <dt>大きさ</dt><dd id="spot-kofun-size">-</dd>
+                </dl>
+            </div>
+            <div class="card"><h2>詳細</h2><p id="spot-description">-</p></div>
+        </main>
+        <footer class="center"><a href="./index.html" class="back-button">マップに戻る</a></footer>
+    </div>
+    <script>
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbXIgiKRoOkfOgdJxUWi26tCgiNT92lOCKXhavO-XoPh74saC0Di6eqp0vVJoiVa8z6kycQ_HboyYt/pub?gid=0&single=true&output=csv';
+        const params = new URLSearchParams(window.location.search);
+        const spotId = params.get('id');
+        function getPeriodClass(p){if(!p)return'period-default';if(p.includes('古墳'))return'period-kofun';if(p.includes('飛鳥'))return'period-asuka';if(p.includes('奈良'))return'period-nara';if(p.includes('平安'))return'period-heian';if(p.includes('鎌倉'))return'period-kamakura';if(p.includes('室町'))return'period-muromachi';if(p.includes('安土桃山'))return'period-azuchi';if(p.includes('江戸'))return'period-edo';return'period-default'}
+        function createDesignationStamps(d){const c=document.getElementById('spot-designations');if(!d){c.style.display='none';return}const s={'important_cultural_property':'重要文化財','existing_12_keep':'現存12天守','world_heritage':'世界遺産','national_treasure':'国宝','top_100_castle':'日本100名城','special_historic_site':'特別史跡'};const a=d.split(',').map(i=>i.trim());a.forEach(k=>{if(s[k]){const i=document.createElement('img');i.src=`./stamps/${k}.jpg`;i.alt=s[k];i.title=s[k];i.className='designation-stamp';c.appendChild(i)}})}
+        function updatePage(d){document.title=`${d.name} - 日本歴史マップ`;document.getElementById('spot-name').textContent=d.name;const i=document.getElementById('spot-image');if(d.image){i.src=d.image;i.alt=d.name}else{i.style.display='none'}createDesignationStamps(d.designations);const p=document.getElementById('spot-period');p.textContent=d.period||'不明';p.className=getPeriodClass(d.period);document.getElementById('spot-buried-person').textContent=d.buried_person||'不明';document.getElementById('spot-kofun-shape').textContent=d.kofun_shape||'不明';document.getElementById('spot-kofun-size').textContent=d.kofun_size||'不明';const e=document.getElementById('spot-description');if(d.description){e.innerHTML=d.description.replace(/\n/g,'<br>')}else{e.textContent='情報がありません。'}}
+        if(spotId){Papa.parse(sheetUrl,{download:!0,header:!0,dynamicTyping:!0,complete:function(r){const d=r.data.find(row=>row.id==spotId);if(d){updatePage(d)}else{document.getElementById('spot-name').textContent='指定されたスポットが見つかりません'}}})}else{document.getElementById('spot-name').textContent='スポットが指定されていません'}
+    </script>
+</body>
+</html>
